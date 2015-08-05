@@ -149,6 +149,9 @@ setup(name='pyzmail',
                   ],
       cmdclass = cmdclass,
       **extra_options)
+      install_requires=[
+          'unidecode',
+      ]
 
 if 'sdist' in sys.argv and 'upload' in sys.argv:
     print("After an upload, don't forget to change 'maintainer' to 'email' to be hight in pypi index")

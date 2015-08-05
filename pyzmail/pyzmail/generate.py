@@ -17,10 +17,12 @@ For short:
 ... #doctest: +SKIP
 """
 
-import os, sys
+import os
+import sys
 import time
 import base64
-import smtplib, socket
+import smtplib
+import socket
 import email
 import email.encoders
 import email.header
@@ -32,6 +34,7 @@ import email.mime.image
 import email.mime.multipart
 
 import utils
+
 
 def format_addresses(addresses, header_name=None, charset=None):
     """
@@ -81,28 +84,30 @@ def format_addresses(addresses, header_name=None, charset=None):
     >>> print format_addresses(['a@bar.com', ('John', 'john@foo.com') ], 'From', 'us-ascii').encode()
     a@bar.com , John <john@foo.com>
     """
-    header=email.header.Header(charset=charset, header_name=header_name)
+    header = email.header.Header(charset=charset, header_name=header_name)
     for i, address in enumerate(addresses):
-        if i!=0:
+        if i != 0:
             # add separator between addresses
             header.append(',', charset='us-ascii')
 
         try:
-            name, addr=address
+            name, addr = address
         except ValueError:
             # address is not a tuple, their is no name, only email address
             header.append(address, charset='us-ascii')
         else:
-            # check if address name is a unicode or byte string in "pure" us-ascii
+            # check if address name is a unicode or byte string in "pure"
+            # us-ascii
             if utils.is_usascii(name):
                 # name is a us-ascii byte string, i can use formataddr
-                formated_addr=email.utils.formataddr((name, addr))
+                formated_addr = email.utils.formataddr((name, addr))
                 # us-ascii must be used and not default 'charset'
                 header.append(formated_addr, charset='us-ascii')
             else:
                 # this is not as "pure" us-ascii string
                 # Header will use "RFC2047" to encode the address name
-                # if name is byte string, charset will be used to decode it first
+                # if name is byte string, charset will be used to decode it
+                # first
                 header.append(name)
                 # here us-ascii must be used and not default 'charset'
                 header.append('<%s>' % (addr,), charset='us-ascii')
@@ -185,57 +190,63 @@ def build_mail(text, html=None, attachments=[], embeddeds=[]):
     <BLANKLINE>
     """
 
-    main=text_part=html_part=None
+    main = text_part = html_part = None
     if text:
-        content, charset=text
-        main=text_part=email.mime.text.MIMEText(content, 'plain', charset)
+        content, charset = text
+        main = text_part = email.mime.text.MIMEText(content, 'plain', charset)
 
     if html:
-        content, charset=html
-        main=html_part=email.mime.text.MIMEText(content, 'html', charset)
+        content, charset = html
+        main = html_part = email.mime.text.MIMEText(content, 'html', charset)
 
     if not text_part and not html_part:
-        main=text_part=email.mime.text.MIMEText('', 'plain', 'us-ascii')
+        main = text_part = email.mime.text.MIMEText('', 'plain', 'us-ascii')
     elif text_part and html_part:
-        # need to create a multipart/alternative to include text and html version
-        main=email.mime.multipart.MIMEMultipart('alternative', None, [text_part, html_part])
+        # need to create a multipart/alternative to include text and html
+        # version
+        main = email.mime.multipart.MIMEMultipart('alternative', None,
+                                                  [text_part, html_part])
 
     if embeddeds:
-        related=email.mime.multipart.MIMEMultipart('related')
+        related = email.mime.multipart.MIMEMultipart('related')
         related.attach(main)
         for part in embeddeds:
             if not isinstance(part, email.mime.base.MIMEBase):
-                data, maintype, subtype, content_id, charset=part
-                if (maintype=='text'):
-                    part=email.mime.text.MIMEText(data, subtype, charset)
+                data, maintype, subtype, content_id, charset = part
+                if (maintype == 'text'):
+                    part = email.mime.text.MIMEText(data, subtype, charset)
                 else:
-                    part=email.mime.base.MIMEBase(maintype, subtype)
+                    part = email.mime.base.MIMEBase(maintype, subtype)
                     part.set_payload(data)
                     email.encoders.encode_base64(part)
                 part.add_header('Content-ID', '<'+content_id+'>')
                 part.add_header('Content-Disposition', 'inline')
             related.attach(part)
-        main=related
+        main = related
 
     if attachments:
-        mixed=email.mime.multipart.MIMEMultipart('mixed')
+        mixed = email.mime.multipart.MIMEMultipart('mixed')
         mixed.attach(main)
         for part in attachments:
             if not isinstance(part, email.mime.base.MIMEBase):
-                data, maintype, subtype, filename, charset=part
-                if (maintype=='text'):
-                    part=email.mime.text.MIMEText(data, subtype, charset)
+                data, maintype, subtype, filename, charset = part
+                if (maintype == 'text'):
+                    part = email.mime.text.MIMEText(data, subtype, charset)
                 else:
-                    part=email.mime.base.MIMEBase(maintype, subtype)
+                    part = email.mime.base.MIMEBase(maintype, subtype)
                     part.set_payload(data)
                     email.encoders.encode_base64(part)
-                part.add_header('Content-Disposition', 'attachment', filename=filename)
+                part.add_header(
+                    'Content-Disposition', 'attachment', filename=filename)
             mixed.attach(part)
-        main=mixed
+        main = mixed
 
     return main
 
-def complete_mail(message, sender, recipients, subject, default_charset, cc=[], bcc=[], message_id_string=None, date=None, headers=[]):
+
+def complete_mail(message, sender, recipients, subject,
+                  default_charset, cc=[], bcc=[],
+                  message_id_string=None, date=None, headers=[]):
     """
     Fill in the From, To, Cc, Subject, Date and Message-Id I{headers} of
     one existing message regarding the parameters.
@@ -314,39 +325,46 @@ def complete_mail(message, sender, recipients, subject, default_charset, cc=[], 
         else:
             return address
 
-    mail_from=getaddr(sender[1])
-    rcpt_to=map(getaddr, recipients)
+    mail_from = getaddr(sender[1])
+    rcpt_to = map(getaddr, recipients)
     rcpt_to.extend(map(getaddr, cc))
     rcpt_to.extend(map(getaddr, bcc))
 
-    message['From'] = format_addresses([ sender, ], header_name='from', charset=default_charset)
+    message['From'] = format_addresses(
+        [sender, ], header_name='from', charset=default_charset)
     if recipients:
-        message['To'] = format_addresses(recipients, header_name='to', charset=default_charset)
+        message['To'] = format_addresses(
+            recipients, header_name='to', charset=default_charset)
     if cc:
-        message['Cc'] = format_addresses(cc, header_name='cc', charset=default_charset)
+        message['Cc'] = format_addresses(
+            cc, header_name='cc', charset=default_charset)
     message['Subject'] = email.header.Header(subject, default_charset)
     if date:
-        utc_from_epoch=date
+        utc_from_epoch = date
     else:
-        utc_from_epoch=time.time()
+        utc_from_epoch = time.time()
     message['Date'] = email.utils.formatdate(utc_from_epoch, localtime=True)
 
     if message_id_string:
-        msg_id=message['Message-Id']=email.utils.make_msgid(message_id_string)
+        msg_id = message[
+            'Message-Id'] = email.utils.make_msgid(message_id_string)
     else:
-        msg_id=None
+        msg_id = None
 
     for field, value in headers:
         if isinstance(value, email.header.Header):
-            message[field]=value
+            message[field] = value
         else:
-            message[field]=email.header.Header(value, default_charset)
+            message[field] = email.header.Header(value, default_charset)
 
-    payload=message.as_string()
+    payload = message.as_string()
 
     return payload, mail_from, rcpt_to, msg_id
 
-def compose_mail(sender, recipients, subject, default_charset, text, html=None, attachments=[], embeddeds=[], cc=[], bcc=[], message_id_string=None, date=None, headers=[]):
+
+def compose_mail(sender, recipients, subject, default_charset,
+                 text, html=None, attachments=[], embeddeds=[], cc=[], bcc=[],
+                 message_id_string=None, date=None, headers=[]):
     """
     Compose an email regarding the arguments. Call L{build_mail()} and
     L{complete_mail()} at once.
@@ -361,11 +379,15 @@ def compose_mail(sender, recipients, subject, default_charset, text, html=None, 
 
     >>> payload, mail_from, rcpt_to, msg_id=compose_mail((u'Me', 'me@foo.com'), [(u'Him', 'him@bar.com')], u'the subject', 'iso-8859-1', ('Hello world', 'us-ascii'), attachments=[('attached', 'text', 'plain', 'text.txt', 'us-ascii')])
     """
-    message=build_mail(text, html, attachments, embeddeds)
-    return complete_mail(message, sender, recipients, subject, default_charset, cc, bcc, message_id_string, date, headers)
+    message = build_mail(text, html, attachments, embeddeds)
+    return complete_mail(message, sender, recipients, subject,
+                         default_charset, cc, bcc, message_id_string,
+                         date, headers)
 
 
-def send_mail2(payload, mail_from, rcpt_to, smtp_host, smtp_port=25, smtp_mode='normal', smtp_login=None, smtp_password=None):
+def send_mail2(payload, mail_from, rcpt_to,
+               smtp_host, smtp_port=25, smtp_mode='normal',
+               smtp_login=None, smtp_password=None):
     """
     Send the message to a SMTP host. Look at the L{send_mail()} documentation.
     L{send_mail()} call this function and catch all exceptions to convert them
@@ -387,24 +409,25 @@ def send_mail2(payload, mail_from, rcpt_to, smtp_host, smtp_port=25, smtp_mode='
     @raise smtplib.SMTPException: Look at the standard C{smtplib.SMTP.sendmail()} documentation.
 
     """
-    if smtp_mode=='ssl':
-        smtp=smtplib.SMTP_SSL(smtp_host, smtp_port)
+    if smtp_mode == 'ssl':
+        smtp = smtplib.SMTP_SSL(smtp_host, smtp_port)
     else:
-        smtp=smtplib.SMTP(smtp_host, smtp_port)
-        if smtp_mode=='tls':
+        smtp = smtplib.SMTP(smtp_host, smtp_port)
+        if smtp_mode == 'tls':
             smtp.starttls()
 
     if smtp_login and smtp_password:
-        if sys.version_info<(3, 0):
+        if sys.version_info < (3, 0):
             # python 2.x
             # login and password must be encoded
             # because HMAC used in CRAM_MD5 require non unicode string
-            smtp.login(smtp_login.encode('utf-8'), smtp_password.encode('utf-8'))
+            smtp.login(
+                smtp_login.encode('utf-8'), smtp_password.encode('utf-8'))
         else:
-            #python 3.x
+            # python 3.x
             smtp.login(smtp_login, smtp_password)
     try:
-        ret=smtp.sendmail(mail_from, rcpt_to, payload)
+        ret = smtp.sendmail(mail_from, rcpt_to, payload)
     finally:
         try:
             smtp.quit()
@@ -413,7 +436,10 @@ def send_mail2(payload, mail_from, rcpt_to, smtp_host, smtp_port=25, smtp_mode='
 
     return ret
 
-def send_mail(payload, mail_from, rcpt_to, smtp_host, smtp_port=25, smtp_mode='normal', smtp_login=None, smtp_password=None):
+
+def send_mail(payload, mail_from, rcpt_to,
+              smtp_host, smtp_port=25, smtp_mode='normal',
+              smtp_login=None, smtp_password=None):
     """
     Send the message to a SMTP host. Handle SSL, TLS and authentication.
     I{payload}, I{mail_from} and I{rcpt_to} can come from values returned by
@@ -482,30 +508,30 @@ def send_mail(payload, mail_from, rcpt_to, smtp_host, smtp_port=25, smtp_mode='n
 
     """
 
-    error=dict()
+    error = dict()
     try:
-        ret=send_mail2(payload, mail_from, rcpt_to, smtp_host, smtp_port, smtp_mode, smtp_login, smtp_password)
+        ret = send_mail2(payload, mail_from, rcpt_to, smtp_host,
+                         smtp_port, smtp_mode, smtp_login, smtp_password)
     except (socket.error, ), e:
-        error='server %s:%s not responding: %s' % (smtp_host, smtp_port, e)
+        error = 'server %s:%s not responding: %s' % (smtp_host, smtp_port, e)
     except smtplib.SMTPAuthenticationError, e:
-        error='authentication error: %s' % (e, )
+        error = 'authentication error: %s' % (e, )
     except smtplib.SMTPRecipientsRefused, e:
         # code, error=e.recipients[recipient_addr]
-        error='all recipients refused: '+', '.join(e.recipients.keys())
+        error = 'all recipients refused: '+', '.join(e.recipients.keys())
     except smtplib.SMTPSenderRefused, e:
         # e.sender, e.smtp_code, e.smtp_error
-        error='sender refused: %s' % (e.sender, )
+        error = 'sender refused: %s' % (e.sender, )
     except smtplib.SMTPDataError, e:
-        error='SMTP protocol mismatch: %s' % (e, )
+        error = 'SMTP protocol mismatch: %s' % (e, )
     except smtplib.SMTPHeloError, e:
-        error="server didn't reply properly to the HELO greeting: %s" % (e, )
+        error = "server didn't reply properly to the HELO greeting: %s" % e
     except smtplib.SMTPException, e:
-        error='SMTP error: %s' % (e, )
+        error = 'SMTP error: %s' % (e, )
 #    except Exception, e:
 #        raise # unknown error
     else:
         # failed addresses and error messages
-        error=ret
+        error = ret
 
     return error
-

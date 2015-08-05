@@ -12,14 +12,16 @@ Various functions used by other modules
 
 import sys
 
-invalid_chars_in_filename=b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f' \
-                          b'\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f' \
-                          b'<>:"/\\|?*\%\''
+invalid_chars_in_filename = \
+    b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f' \
+    b'\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f' \
+    b'<>:"/\\|?*\%\''
 
-invalid_windows_name=[b'CON', b'PRN', b'AUX', b'NUL', b'COM1', b'COM2', b'COM3',
-                      b'COM4', b'COM5', b'COM6', b'COM7', b'COM8', b'COM9',
-                      b'LPT1', b'LPT2', b'LPT3', b'LPT4', b'LPT5', b'LPT6', b'LPT7',
-                      b'LPT8', b'LPT9' ]
+invalid_windows_name = [b'CON', b'PRN', b'AUX', b'NUL', b'COM1', b'COM2',
+                        b'COM3', b'COM4', b'COM5', b'COM6', b'COM7', b'COM8',
+                        b'COM9', b'LPT1', b'LPT2', b'LPT3', b'LPT4', b'LPT5',
+                        b'LPT6', b'LPT7', b'LPT8', b'LPT9']
+
 
 def sanitize_filename(filename, alt_name, alt_ext):
     """
@@ -59,30 +61,31 @@ def sanitize_filename(filename, alt_name, alt_ext):
     if not filename:
         return alt_name+alt_ext
 
-    if ((sys.version_info<(3, 0) and isinstance(filename, unicode)) or \
-        (sys.version_info>=(3, 0) and isinstance(filename, str))):
-        filename=filename.encode('ascii', 'ignore')
+    if ((sys.version_info < (3, 0) and isinstance(filename, unicode)) or
+            (sys.version_info >= (3, 0) and isinstance(filename, str))):
+        filename = filename.encode('ascii', 'ignore')
 
-    filename=filename.translate(None, invalid_chars_in_filename)
-    filename=filename.strip()
+    filename = filename.translate(None, invalid_chars_in_filename)
+    filename = filename.strip()
 
-    upper=filename.upper()
+    upper = filename.upper()
     for name in invalid_windows_name:
-        if upper==name:
-            filename=filename+b'A'
+        if upper == name:
+            filename = filename+b'A'
             break
         if upper.startswith(name+b'.'):
-            filename=filename[:len(name)]+b'A'+filename[len(name):]
+            filename = filename[:len(name)]+b'A'+filename[len(name):]
             break
 
-    if sys.version_info>=(3, 0):
+    if sys.version_info >= (3, 0):
         # back to string
-        filename=filename.decode('us-ascii')
+        filename = filename.decode('us-ascii')
 
-    if filename.rfind('.')==0:
-        filename=alt_name+filename
+    if filename.rfind('.') == 0:
+        filename = alt_name+filename
 
     return filename
+
 
 def handle_filename_collision(filename, filenames):
     """
@@ -117,19 +120,20 @@ def handle_filename_collision(filename, filenames):
     """
     if filename.lower() in filenames:
         try:
-            basename, ext=filename.rsplit('.', 1)
-            ext='.'+ext
+            basename, ext = filename.rsplit('.', 1)
+            ext = '.'+ext
         except ValueError:
-            basename, ext=filename, ''
+            basename, ext = filename, ''
 
-        i=1
+        i = 1
         while True:
-            filename='%s-%02d%s' % (basename, i, ext)
+            filename = '%s-%02d%s' % (basename, i, ext)
             if filename.lower() not in filenames:
                 break
-            i+=1
+            i += 1
 
     return filename
+
 
 def is_usascii(value):
     """"
@@ -152,4 +156,3 @@ def is_usascii(value):
         return False
 
     return True
-
