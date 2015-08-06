@@ -322,7 +322,6 @@ def get_filename(part):
     filename = part.get_param('filename', None, 'content-disposition')
     if not filename:
         filename = part.get_param('name', None)  # default is 'content-type'
-
     if filename:
         if isinstance(filename, tuple):
             # RFC 2231 must be used to encode parameters inside MIME header
@@ -335,7 +334,6 @@ def get_filename(part):
             # But a lot of MUA erroneously use RFC 2047 instead of RFC 2231
             # in fact anybody missuse RFC2047 here !!!
             filename = decode_mail_header(filename)
-
     return filename
 
 
@@ -360,8 +358,8 @@ def _search_message_content(contents, part):
             start = part.get_param('start', None)
             related_type = part.get_param('type', None)
             for i, subpart in enumerate(part.get_payload()):
-                if (not start and i == 0) or
-                (start and start == subpart.get('Content-Id')):
+                if (not start and i == 0) or\
+                   (start and start == subpart.get('Content-Id')):
                     _search_message_content(contents, subpart)
                     return
         elif type == 'multipart/alternative':
@@ -487,7 +485,7 @@ def get_mail_parts(msg):
         type = part.get_content_type()
         if type.startswith('message/'):
             # ('message/delivery-status', 'message/rfc822', 'message/disposition-notification'):
-            # I don't want to explore the tree deeper her and just save source using msg.as_string()
+            # I don't want to explore the tree deeper here and just save source using msg.as_string()
             # but I don't use msg.as_string() because I want to use
             # mangle_from_=False
             filename = get_filename(part)
@@ -500,7 +498,10 @@ def get_mail_parts(msg):
         elif part.is_multipart():
             # insert new parts at the beginning of the stack (deep first
             # search)
-            stack[:0] = part.get_payload()
+            # print 'part.is_multipart'
+            # print part.get_payload()
+            # stack[:0] = part.get_payload()
+            stack.insert(0, part.get_payload())
         else:
             charset = part.get_param('charset')
             filename = get_filename(part)
